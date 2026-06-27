@@ -1,0 +1,951 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ThreadTrack - Jolly Inventory</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/*  
+   DESIGN TOKENS
+  */
+:root {
+  --bg:#F4F3F0; --surface:#FFFFFF; --surface-2:#FAFAF8;
+  --border:#E8E6DF; --border-2:#D8D5CC;
+  --text:#18181A; --text-2:#3A3A3C;
+  --muted:#78776E; --muted-2:#A8A79E;
+  --accent:#2563EB; --accent-d:#1D4ED8; --accent-l:#EEF3FD; --accent-xl:#DBEAFE;
+  --warn:#D97706; --warn-d:#B45309; --warn-l:#FEF3C7; --warn-xl:#FDE68A;
+  --danger:#DC2626; --danger-d:#B91C1C; --danger-l:#FEE2E2;
+  --ok:#16A34A; --ok-d:#15803D; --ok-l:#DCFCE7;
+  --purple:#7C3AED; --purple-l:#EDE9FE; --purple-xl:#DDD6FE;
+  --radius-sm:6px; --radius:10px; --radius-lg:14px; --radius-xl:18px;
+  --shadow-sm:0 1px 2px rgba(0,0,0,.06);
+  --shadow:0 1px 4px rgba(0,0,0,.08),0 4px 12px rgba(0,0,0,.04);
+  --shadow-md:0 4px 16px rgba(0,0,0,.10),0 1px 4px rgba(0,0,0,.06);
+  --shadow-lg:0 8px 40px rgba(0,0,0,.14),0 2px 8px rgba(0,0,0,.08);
+  --shadow-xl:0 20px 60px rgba(0,0,0,.18),0 4px 16px rgba(0,0,0,.10);
+  --t:.18s cubic-bezier(.4,0,.2,1);
+}
+
+/*  
+   RESET & BASE
+  */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Inter",system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+
+/*  
+   NAV
+  */
+nav{background:rgba(255,255,255,.88);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;gap:24px;height:58px;position:sticky;top:0;z-index:100;box-shadow:0 1px 0 rgba(0,0,0,.06),var(--shadow-sm)}
+.nav-brand{font-weight:800;font-size:15.5px;display:flex;align-items:center;gap:8px;letter-spacing:-.3px;color:var(--text);text-decoration:none}
+.nav-brand-icon{width:32px;height:32px;background:linear-gradient(135deg,#2563EB 0%,#7C3AED 100%);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 2px 8px rgba(37,99,235,.35);flex-shrink:0}
+.nav-brand span{color:var(--accent)}
+.nav-brand small{font-weight:500;font-size:11px;color:var(--muted);background:var(--surface-2);border:1px solid var(--border);padding:1px 7px;border-radius:99px;letter-spacing:.2px;margin-left:2px}
+.nav-tabs{display:flex;gap:2px}
+.tab-btn{background:none;border:none;padding:6px 14px;border-radius:8px;font-size:13px;font-weight:500;font-family:inherit;color:var(--muted);cursor:pointer;transition:all var(--t);letter-spacing:-.1px}
+.tab-btn:hover{background:var(--surface-2);color:var(--text-2)}
+.tab-btn.active{background:var(--accent-l);color:var(--accent);font-weight:600}
+.nav-save{margin-left:auto;font-size:11.5px;color:var(--ok);display:flex;align-items:center;gap:6px;font-weight:500;white-space:nowrap;padding:4px 10px;background:var(--ok-l);border-radius:99px;transition:all var(--t)}
+.nav-save::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--ok);flex-shrink:0;animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(.8)}}
+
+/*  
+   LAYOUT
+  */
+main{max-width:1440px;margin:0 auto;padding:34px 34px}
+.page{display:none;animation:fadeIn .2s ease}
+.page.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+/*  
+   STAT CARDS
+  */
+.cards{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:26px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px 20px 18px;box-shadow:var(--shadow);position:relative;overflow:hidden;transition:transform var(--t),box-shadow var(--t);cursor:default}
+.card::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:var(--border);border-radius:var(--radius-lg) var(--radius-lg) 0 0;transition:background var(--t)}
+.card:hover{transform:translateY(-2px);box-shadow:var(--shadow-md)}
+.card.ok::before{background:linear-gradient(90deg,var(--ok),#4ADE80)}
+.card.warn::before{background:linear-gradient(90deg,var(--warn),#FCD34D)}
+.card.danger::before{background:linear-gradient(90deg,var(--danger),#F87171)}
+.card.purple::before{background:linear-gradient(90deg,var(--purple),#A78BFA)}
+.card-label{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);margin-bottom:8px}
+.card-value{font-size:30px;font-weight:800;letter-spacing:-1.5px;line-height:1;margin-bottom:4px}
+.card-sub{font-size:11px;color:var(--muted-2)}
+.card.warn .card-value{color:var(--warn)}
+.card.danger .card-value{color:var(--danger)}
+.card.ok .card-value{color:var(--ok)}
+.card.purple .card-value{color:var(--purple)}
+
+/*  
+   ALERT BANNER
+  */
+.alert-banner{background:linear-gradient(135deg,var(--warn-l) 0%,#FFFBEB 100%);border:1px solid var(--warn-xl);border-left:4px solid var(--warn);border-radius:var(--radius);padding:13px 18px;margin-bottom:22px;font-size:13px;font-weight:500;color:var(--warn-d);display:flex;align-items:center;gap:10px;box-shadow:var(--shadow-sm)}
+.alert-banner.hidden{display:none}
+
+/*  
+   SECTION BAR
+  */
+.section-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:12px;flex-wrap:wrap}
+.section-bar h2{font-size:18px;font-weight:700;letter-spacing:-.3px;color:var(--text)}
+.bar-right{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+/*  
+   INPUTS
+  */
+input[type=text],input[type=password],input[type=number],select{border:1.5px solid var(--border);border-radius:8px;padding:9px 13px;font-size:14px;font-family:inherit;color:var(--text);background:var(--surface);outline:none;transition:border-color var(--t),box-shadow var(--t);appearance:none;-webkit-appearance:none}
+input[type=text]:hover,input[type=password]:hover,input[type=number]:hover,select:hover{border-color:var(--border-2)}
+input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(37,99,235,.12)}
+select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2378776E' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:32px}
+#search{width:260px}
+#filterType{width:200px}
+
+/*  
+   BUTTONS
+  */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:8px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;border:none;transition:all var(--t);letter-spacing:-.1px;white-space:nowrap}
+.btn-primary{background:linear-gradient(135deg,var(--accent) 0%,#1E40AF 100%);color:#fff;box-shadow:0 1px 3px rgba(37,99,235,.4),0 0 0 1px rgba(37,99,235,.1)}
+.btn-primary:hover{background:linear-gradient(135deg,var(--accent-d) 0%,#1E3A8A 100%);box-shadow:0 4px 12px rgba(37,99,235,.4);transform:translateY(-1px)}
+.btn-primary:active{transform:translateY(0)}
+.btn-ghost{background:var(--surface);border:1.5px solid var(--border);color:var(--text-2);box-shadow:var(--shadow-sm)}
+.btn-ghost:hover{background:var(--surface-2);border-color:var(--border-2);box-shadow:var(--shadow)}
+.btn-sm{padding:4px 10px;font-size:12px;font-weight:600;font-family:inherit;border:none;border-radius:6px;cursor:pointer;transition:all var(--t);letter-spacing:-.1px}
+.btn-edit{background:var(--accent-l);color:var(--accent)}
+.btn-edit:hover{background:var(--accent-xl);box-shadow:0 2px 8px rgba(37,99,235,.15)}
+.btn-del{background:var(--danger-l);color:var(--danger)}
+.btn-del:hover{background:#FECACA;box-shadow:0 2px 8px rgba(220,38,38,.15)}
+
+/*  
+   TABLE
+  */
+.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow);overflow:hidden}
+table{width:100%;border-collapse:collapse}
+thead th{padding:13px 16px;text-align:left;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);background:var(--surface-2);border-bottom:1px solid var(--border);white-space:nowrap}
+thead tr th:first-child{padding-left:18px}
+tbody tr{border-bottom:1px solid var(--border);transition:background var(--t)}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:#FAFAF8}
+td{padding:14px 16px;vertical-align:middle}
+td:first-child{padding-left:18px}
+.color-dot{width:24px;height:24px;border-radius:50%;display:inline-block;border:2.5px solid rgba(255,255,255,.9);box-shadow:0 0 0 1.5px rgba(0,0,0,.12),var(--shadow-sm);flex-shrink:0;transition:transform var(--t)}
+tbody tr:hover .color-dot{transform:scale(1.12)}
+.color-cell{display:flex;align-items:center;gap:8px}
+
+/*  
+   BADGES
+  */
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:700;white-space:nowrap;letter-spacing:.1px}
+.badge-ok{background:var(--ok-l);color:var(--ok-d)}
+.badge-warn{background:var(--warn-l);color:var(--warn-d)}
+.badge-danger{background:var(--danger-l);color:var(--danger-d)}
+.badge-type{background:#F3F4F6;color:#374151}
+
+code{font-size:11.5px;background:var(--surface-2);border:1px solid var(--border);padding:1px 6px;border-radius:5px;font-family:"SF Mono","Fira Code","Roboto Mono",monospace;color:var(--accent);font-weight:500}
+.num{font-variant-numeric:tabular-nums;font-weight:700;letter-spacing:-.3px}
+
+/*  
+   BOX BADGE
+  */
+.box-info{display:flex;align-items:center;gap:4px}
+.box-badge{background:var(--purple-l);color:var(--purple);font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;white-space:nowrap;border:1px solid var(--purple-xl);letter-spacing:-.1px}
+
+/*  
+   LOW STOCK
+  */
+.ls-list{display:flex;flex-direction:column;gap:10px}
+.ls-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 20px;display:flex;align-items:center;gap:16px;box-shadow:var(--shadow);transition:transform var(--t),box-shadow var(--t)}
+.ls-item:hover{transform:translateX(2px);box-shadow:var(--shadow-md)}
+.ls-item.critical{border-left:4px solid var(--danger);padding-left:18px}
+.ls-item.warning{border-left:4px solid var(--warn);padding-left:18px}
+.ls-info{flex:1;min-width:0}
+.ls-name{font-weight:700;font-size:13.5px;margin-bottom:3px;letter-spacing:-.2px}
+.ls-meta{font-size:12px;color:var(--muted)}
+.ls-right{text-align:right;flex-shrink:0}
+.ls-cones{font-size:26px;font-weight:800;letter-spacing:-1.5px;line-height:1}
+.ls-min{font-size:11px;color:var(--muted-2);margin-top:2px}
+
+/*  
+   MODAL
+  */
+.overlay{position:fixed;inset:0;background:rgba(10,10,10,.5);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px}
+.overlay.hidden{display:none}
+.modal{background:var(--surface);border-radius:var(--radius-xl);box-shadow:var(--shadow-xl);width:100%;max-width:600px;max-height:92vh;overflow-y:auto;border:1px solid var(--border);animation:modalIn .22s cubic-bezier(.34,1.56,.64,1)}
+@keyframes modalIn{from{opacity:0;transform:scale(.96) translateY(12px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.modal-header{padding:22px 24px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--surface);z-index:10;border-radius:var(--radius-xl) var(--radius-xl) 0 0}
+.modal-header h3{font-size:16px;font-weight:700;letter-spacing:-.4px}
+.modal-close{background:var(--surface-2);border:1px solid var(--border);font-size:14px;cursor:pointer;color:var(--muted);width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;transition:all var(--t);font-weight:600}
+.modal-close:hover{background:var(--danger-l);color:var(--danger);border-color:#FECACA}
+.modal-body{padding:22px 24px}
+.modal-footer{padding:16px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;background:var(--surface-2);border-radius:0 0 var(--radius-xl) var(--radius-xl)}
+
+/*  
+   FORM
+  */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.form-group{display:flex;flex-direction:column;gap:5px}
+.form-group.span2{grid-column:span 2}
+.form-group label{font-size:11.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.form-group input,.form-group select{width:100%}
+
+/*  
+   JOLLY LOOKUP
+  */
+.jolly-lookup{background:linear-gradient(135deg,#FFFBEB 0%,#FEF9C3 100%);border:1.5px solid var(--warn-xl);border-radius:var(--radius);padding:14px 16px;margin-bottom:18px}
+.jolly-lookup label{font-size:11.5px;font-weight:700;color:#92400E;display:block;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px}
+.jolly-row{display:flex;gap:8px;align-items:center}
+.jolly-row input{flex:1}
+.jolly-result{margin-top:10px;display:flex;align-items:center;gap:10px;font-size:12.5px;font-weight:500;color:#78350F;background:rgba(255,255,255,.6);border-radius:7px;padding:6px 10px}
+.jolly-result.hidden{display:none}
+.jolly-preview{width:30px;height:30px;border-radius:50%;border:2.5px solid rgba(255,255,255,.9);box-shadow:0 0 0 1.5px rgba(0,0,0,.12),var(--shadow-sm);flex-shrink:0}
+
+/*  
+   BOX HELPER
+  */
+.box-helper{background:linear-gradient(135deg,var(--purple-l) 0%,var(--purple-xl) 100%);border:1px solid var(--purple-xl);border-radius:8px;padding:10px 14px;font-size:12.5px;color:#5B21B6;font-weight:500;display:flex;align-items:center;gap:8px}
+.box-helper.hidden{display:none}
+
+/*  
+   EMPTY STATES
+  */
+.empty{text-align:center;padding:60px 20px;color:var(--muted)}
+.empty-icon{font-size:40px;margin-bottom:12px;opacity:.7}
+.empty p{font-size:13px;font-weight:500}
+
+/*  
+   TOAST
+  */
+.toast{position:fixed;bottom:24px;right:24px;background:linear-gradient(135deg,#1A1A22 0%,#2D2D3A 100%);color:#fff;padding:11px 18px;border-radius:10px;font-size:13px;font-weight:500;font-family:inherit;z-index:999;transform:translateY(80px);opacity:0;transition:all .28s cubic-bezier(.34,1.56,.64,1);pointer-events:none;box-shadow:0 8px 24px rgba(0,0,0,.25),0 2px 8px rgba(0,0,0,.15);border:1px solid rgba(255,255,255,.08);max-width:320px;letter-spacing:-.1px}
+.toast.show{transform:translateY(0);opacity:1}
+
+/*  
+   SCROLLBAR
+  */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border-2);border-radius:99px}
+::-webkit-scrollbar-thumb:hover{background:var(--muted-2)}
+
+/*  
+   RESPONSIVE
+  */
+
+/* LOGIN */
+body.login-visible{min-height:100vh;background:#0F172A;overflow:hidden}
+body.login-visible nav,body.login-visible main{display:none}
+body.authenticated #login-screen{display:none}
+.login-screen{min-height:100vh;display:grid;place-items:center;padding:28px;background:linear-gradient(145deg,#0F172A 0%,#172033 46%,#F6F4EE 46%,#F6F4EE 100%);position:relative;isolation:isolate;overflow:auto}
+.login-screen::before{content:"";position:absolute;inset:0;background:linear-gradient(rgba(255,255,255,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.045) 1px,transparent 1px);background-size:42px 42px;mask-image:linear-gradient(135deg,#000 0%,transparent 62%);z-index:-1}
+.login-panel{width:min(100%,430px);background:rgba(255,255,255,.97);border:1px solid rgba(226,232,240,.9);border-radius:18px;box-shadow:0 24px 80px rgba(15,23,42,.24),0 2px 10px rgba(15,23,42,.08);padding:34px;animation:loginIn .24s ease-out}
+@keyframes loginIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.login-mark{width:48px;height:48px;border-radius:14px;background:linear-gradient(135deg,#1E3A8A 0%,#0F766E 100%);color:#fff;display:grid;place-items:center;font-weight:800;font-size:15px;letter-spacing:.4px;box-shadow:0 12px 28px rgba(30,58,138,.28);margin-bottom:22px}
+.login-kicker{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1.1px;color:#0F766E;margin-bottom:8px}
+.login-title{font-size:29px;line-height:1.12;font-weight:800;letter-spacing:-.7px;color:#111827;margin-bottom:9px}
+.login-copy{font-size:14px;color:#64748B;line-height:1.6;margin-bottom:26px}
+.login-form{display:grid;gap:16px}
+.login-field{display:grid;gap:7px}
+.login-field label{font-size:12px;font-weight:700;color:#334155;letter-spacing:-.1px}
+.login-field input{width:100%;height:46px;border:1.5px solid #D9DEE8;border-radius:10px;padding:0 13px;font-size:14px;font-family:inherit;color:#111827;background:#FFFFFF;outline:none;transition:border-color var(--t),box-shadow var(--t),background var(--t)}
+.login-field input:focus{border-color:#2563EB;box-shadow:0 0 0 4px rgba(37,99,235,.12)}
+.login-password-row{position:relative}
+.login-password-row input{padding-right:76px}
+.password-toggle{position:absolute;right:7px;top:7px;height:32px;border:1px solid #E2E8F0;background:#F8FAFC;color:#475569;border-radius:8px;padding:0 10px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;transition:all var(--t)}
+.password-toggle:hover{background:#EEF2F7;color:#0F172A}
+.login-error{min-height:18px;font-size:12px;font-weight:700;color:#B91C1C}
+.login-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:2px}
+.login-hint{font-size:12px;color:#64748B;line-height:1.45}
+.login-submit{height:46px;min-width:132px;border:none;border-radius:10px;background:linear-gradient(135deg,#1D4ED8 0%,#0F766E 100%);color:#fff;font-size:14px;font-weight:800;font-family:inherit;cursor:pointer;box-shadow:0 12px 24px rgba(29,78,216,.22);transition:transform var(--t),box-shadow var(--t),filter var(--t)}
+.login-submit:hover{transform:translateY(-1px);box-shadow:0 16px 30px rgba(29,78,216,.26);filter:saturate(1.05)}
+.login-submit:active{transform:translateY(0)}
+.nav-user{display:flex;align-items:center;gap:10px;margin-left:8px}
+.nav-user-pill{font-size:11.5px;font-weight:700;color:#1E3A8A;background:#EFF6FF;border:1px solid #DBEAFE;border-radius:99px;padding:4px 10px;white-space:nowrap}
+.nav-logout{border:1.5px solid var(--border);background:var(--surface);color:var(--text-2);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;transition:all var(--t);white-space:nowrap}
+.nav-logout:hover{border-color:#CBD5E1;background:#F8FAFC;color:#0F172A;box-shadow:var(--shadow-sm)}
+@media(max-width:860px){.cards{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:640px){
+  body.login-visible{overflow:auto}
+  .login-screen{padding:18px;background:linear-gradient(180deg,#0F172A 0%,#172033 36%,#F6F4EE 36%,#F6F4EE 100%)}
+  .login-panel{padding:26px 22px;border-radius:16px}
+  .login-title{font-size:24px}
+  .login-actions{display:grid;gap:14px}
+  .login-submit{width:100%}
+  .cards{grid-template-columns:1fr 1fr}
+  .form-grid{grid-template-columns:1fr}
+  .form-group.span2{grid-column:span 1}
+  #search{width:140px}
+  #filterType{width:140px}
+  .nav-save{display:none}
+  main{padding:18px 16px}
+  nav{padding:0 16px;gap:10px;overflow-x:auto}
+  .nav-user{margin-left:auto}
+  .nav-user-pill{display:none}
+}
+@media(max-width:420px){
+  .nav-tabs{gap:1px}
+  .tab-btn{padding:6px 10px;font-size:12px}
+  .nav-brand small{display:none}
+  .nav-logout{padding:6px 10px}
+}
+</style>
+</head>
+<body class="login-visible">
+<section id="login-screen" class="login-screen" aria-label="Admin sign in">
+  <div class="login-panel">
+    <div class="login-mark">TT</div>
+    <div class="login-kicker">Secure inventory access</div>
+    <h1 class="login-title">Sign in to ThreadTrack</h1>
+    <p class="login-copy">Manage Jolly stock, low inventory alerts, box counts, and local backups from one clean workspace.</p>
+    <form id="login-form" class="login-form" autocomplete="on">
+      <div class="login-field">
+        <label for="login-username">Username</label>
+        <input type="text" id="login-username" autocomplete="username" inputmode="email" placeholder="" required />
+      </div>
+      <div class="login-field">
+        <label for="login-password">Password</label>
+        <div class="login-password-row">
+          <input type="password" id="login-password" autocomplete="current-password" placeholder="Enter password" required />
+          <button type="button" class="password-toggle" id="password-toggle" onclick="togglePassword()">Show</button>
+        </div>
+      </div>
+      <div id="login-error" class="login-error" aria-live="polite"></div>
+      <div class="login-actions">
+        <div class="login-hint">Private browser login for your local inventory system.</div>
+        <button type="submit" class="login-submit">Sign In</button>
+      </div>
+    </form>
+  </div>
+</section>
+
+<nav>
+  <div class="nav-brand">
+    <div class="nav-brand-icon">TT</div>
+    Thread<span>Track</span>
+    <small>x Jolly</small>
+  </div>
+  <div class="nav-tabs">
+    <button class="tab-btn active" onclick="showPage('dashboard')">Dashboard</button>
+    <button class="tab-btn" onclick="showPage('inventory')">Inventory</button>
+    <button class="tab-btn" onclick="showPage('lowstock')">Low Stock</button>
+  </div>
+  <div class="nav-save" id="save-indicator" title="Your inventory is stored in this browser's localStorage">Saved on this device</div><div class="nav-user"><span class="nav-user-pill">Admin</span><button class="nav-logout" onclick="logout()">Logout</button></div>
+</nav>
+
+<main>
+  <!-- DASHBOARD -->
+  <div id="page-dashboard" class="page active">
+    <div class="cards">
+      <div class="card"><div class="card-label">Total Colors</div><div class="card-value" id="s-total">-</div><div class="card-sub">in inventory</div></div>
+      <div class="card ok"><div class="card-label">Total Cones</div><div class="card-value" id="s-cones">-</div><div class="card-sub">available</div></div>
+      <div class="card purple"><div class="card-label">Total Boxes</div><div class="card-value" id="s-boxes">-</div><div class="card-sub">10 cones each</div></div>
+      <div class="card warn"><div class="card-label">Low Stock</div><div class="card-value" id="s-low">-</div><div class="card-sub">below minimum</div></div>
+      <div class="card danger"><div class="card-label">Out of Stock</div><div class="card-value" id="s-out">-</div><div class="card-sub">need reorder</div></div>
+    </div>
+    <div id="alert-banner" class="alert-banner hidden"><span>!</span><span id="alert-text"></span></div>
+    <div class="section-bar">
+      <h2>All Threads</h2>
+      <button class="btn btn-primary" onclick="showPage('inventory')">Manage Inventory</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Color</th><th>Jolly Code</th><th>Color Name</th><th>Type</th><th>Cones</th><th>Boxes</th><th>Status</th></tr></thead>
+        <tbody id="dash-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- INVENTORY -->
+  <div id="page-inventory" class="page">
+    <div class="section-bar">
+      <h2>Thread Inventory</h2>
+      <div class="bar-right">
+        <input type="text" id="search" placeholder="Search code or name" oninput="renderInventory()" />
+        <select id="filterType" onchange="renderInventory()">
+          <option value="">All types</option>
+          <option>Rayon</option>
+          <option>Polyester</option>
+          <option>Trilobal Polyester</option>
+          <option>Spun Polyester</option>
+          <option>Cationic</option>
+          <option>Silk Finish</option>
+          <option>Metallic</option>
+          <option>Cotton</option>
+          <option>Viscose</option>
+          <option>Nylon</option>
+        </select>
+        <button class="btn btn-ghost" onclick="exportData()">Export</button>
+        <button class="btn btn-ghost" onclick="document.getElementById('import-file').click()">Import</button>
+        <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(event)" />
+        <button class="btn btn-primary" onclick="openModal()">+ Add Thread</button>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Color</th><th>Jolly Code</th><th>Color Name</th><th>Type</th>
+            <th>Avail Cones</th><th>Boxes (10/box)</th><th>Reserved</th><th>Min</th><th>Status</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="inv-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- LOW STOCK -->
+  <div id="page-lowstock" class="page">
+    <div class="section-bar">
+      <h2>Low Stock Alerts</h2>
+      <span id="ls-count" style="font-size:12px;color:var(--muted);font-weight:500"></span>
+    </div>
+    <div id="ls-list" class="ls-list"></div>
+  </div>
+</main>
+
+<!-- MODAL -->
+<div id="overlay" class="overlay hidden" onclick="overlayBg(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modal-title">Add Thread</h3>
+      <button class="modal-close" onclick="closeModal()">x</button>
+    </div>
+    <div class="modal-body">
+      <div class="jolly-lookup">
+        <label>Auto-fill from Jolly Catalogue</label>
+        <div class="jolly-row">
+          <input type="text" id="jolly-input" placeholder="Type J-code e.g. J-415 or just 415" oninput="jollyLookup()" />
+          <button class="btn btn-ghost" style="white-space:nowrap" onclick="applyJolly()">Apply</button>
+        </div>
+        <div class="jolly-result hidden" id="jolly-result">
+          <div class="jolly-preview" id="jolly-preview"></div>
+          <span id="jolly-info"></span>
+        </div>
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Jolly Code *</label>
+          <input type="text" id="f-code" placeholder="e.g. J-415" />
+        </div>
+        <div class="form-group">
+          <label>Color Name</label>
+          <input type="text" id="f-name" placeholder="e.g. Off White" />
+        </div>
+        <div class="form-group">
+          <label>HEX Color</label>
+          <input type="text" id="f-hex" placeholder="#FFFFFF" oninput="syncColor()" />
+        </div>
+        <div class="form-group" style="justify-content:flex-end;padding-top:2px;">
+          <label>Preview</label>
+          <div id="color-preview" style="width:44px;height:34px;border-radius:8px;border:1.5px solid var(--border);background:#ccc;box-shadow:var(--shadow-sm);transition:background .15s;"></div>
+        </div>
+        <div class="form-group">
+          <label>Thread Type</label>
+          <select id="f-type">
+            <option>Rayon</option>
+            <option>Polyester</option>
+            <option>Trilobal Polyester</option>
+            <option>Spun Polyester</option>
+            <option>Cationic</option>
+            <option>Silk Finish</option>
+            <option>Metallic</option>
+            <option>Cotton</option>
+            <option>Viscose</option>
+            <option>Nylon</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Supplier / Brand</label>
+          <input type="text" id="f-brand" placeholder="Jolly Group" />
+        </div>
+        <div class="form-group">
+          <label>Available Cones</label>
+          <input type="number" id="f-avail" min="0" value="0" oninput="updateBoxCalc()" />
+        </div>
+        <div class="form-group">
+          <label>Reserved Cones</label>
+          <input type="number" id="f-reserved" min="0" value="0" />
+        </div>
+        <div class="form-group span2">
+          <div class="box-helper" id="box-helper">0 cones = <b>0 full boxes</b> + 0 loose cones (10 cones/box)</div>
+        </div>
+        <div class="form-group">
+          <label>Minimum Stock (cones)</label>
+          <input type="number" id="f-min" min="0" value="10" />
+        </div>
+        <div class="form-group">
+          <label>Storage Location</label>
+          <input type="text" id="f-location" placeholder="e.g. Rack A, Shelf 1" />
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveThread()">Save Thread</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+const AUTH_USER = 'admin@132';
+const AUTH_PASS = 'admin@321';
+const AUTH_SESSION_KEY = 'tt_admin_session';
+
+function setAuthView(isLoggedIn) {
+  document.body.classList.toggle('authenticated', isLoggedIn);
+  document.body.classList.toggle('login-visible', !isLoggedIn);
+  if (!isLoggedIn) {
+    requestAnimationFrame(() => document.getElementById('login-username')?.focus());
+  }
+}
+function initAuth() {
+  const form = document.getElementById('login-form');
+  if (form) form.addEventListener('submit', handleLogin);
+  setAuthView(localStorage.getItem(AUTH_SESSION_KEY) === 'active');
+}
+function handleLogin(e) {
+  e.preventDefault();
+  const user = document.getElementById('login-username').value.trim();
+  const pass = document.getElementById('login-password').value;
+  const error = document.getElementById('login-error');
+  if (user === AUTH_USER && pass === AUTH_PASS) {
+    localStorage.setItem(AUTH_SESSION_KEY, 'active');
+    error.textContent = '';
+    document.getElementById('login-password').value = '';
+    setAuthView(true);
+    render();
+    toast('Welcome back, Admin');
+    return;
+  }
+  error.textContent = 'Incorrect username or password.';
+  document.getElementById('login-password').select();
+}
+function logout() {
+  localStorage.removeItem(AUTH_SESSION_KEY);
+  setAuthView(false);
+  toast('Signed out');
+}
+function togglePassword() {
+  const input = document.getElementById('login-password');
+  const btn = document.getElementById('password-toggle');
+  const show = input.type === 'password';
+  input.type = show ? 'text' : 'password';
+  btn.textContent = show ? 'Hide' : 'Show';
+  input.focus();
+}
+//  
+// JOLLY CATALOGUE - J-code to HEX + Name
+//  
+const JOLLY = {
+  "J-415":"#F5F5F0","J-1522":"#18191F","J-6000":"#F0EFEA","J-1305":"#ECEBE5","J-585":"#E8E7E0",
+  "J-121":"#F0EFE8","J-9917":"#EEECD8","J-9786":"#E8E6D0","J-9865":"#EDE8C0","J-708":"#EAE0A8",
+  "J-6042":"#E6D890","J-668":"#E8D878","J-6104":"#F0E888","J-6109":"#F4EC90","J-9297":"#F2E870",
+  "J-134":"#F0E048","J-6064":"#ECD830","J-9778":"#ECD060","J-9886":"#E8C840","J-9210":"#E0B838",
+  "J-9230":"#D8A830","J-1474":"#C89820","J-901":"#C08818","J-1278":"#B87810","J-805":"#A86808",
+  "J-248":"#F0EDE0","J-1463":"#EDE8D8","J-1146":"#E8E0C8","J-210":"#E0D8B8","J-1147":"#D8CCA8",
+  "J-7017":"#D0C098","J-2038":"#C8B488","J-7036":"#C0A878","J-802":"#B89868","J-1200":"#A88858",
+  "J-9239":"#987848","J-2028":"#906838","J-9144":"#805828","J-5023":"#784820","J-9872":"#6E4018",
+  "J-9017":"#663810","J-9247":"#5C3008","J-9298":"#542804","J-806":"#8E6040","J-9811":"#7A5238",
+  "J-9229":"#6A4430","J-9810":"#5A3828","J-9256":"#4C3020","J-9235":"#403020","J-9288":"#382818",
+  "J-515":"#F8F000","J-9744":"#F4E000","J-670":"#F0D000","J-7610":"#ECC000","J-3325":"#E8B000",
+  "J-5056":"#F0A000","J-7053":"#EC9800","J-1477":"#E88800","J-7911":"#E47800","J-7052":"#F08020",
+  "J-209":"#F07030","J-673":"#EC6820","J-826":"#E86010","J-2058":"#F08040","J-2060":"#F07030",
+  "J-1357":"#F06020","J-143":"#F05010","J-9234":"#E84808","J-7014":"#E04000","J-9232":"#D83808",
+  "J-550":"#F0C8A0","J-75":"#ECC090","J-420":"#E8B880","J-9815":"#E4A870","J-82":"#E09860",
+  "J-9947":"#DC8850","J-5033":"#D87840","J-1014":"#D46830","J-192":"#D05820","J-9941":"#CC4810",
+  "J-750":"#F04020","J-1712":"#EC3818","J-693":"#E83010","J-171":"#E42808","J-9233":"#E02000",
+  "J-2098":"#DC1808","J-965":"#D81000","J-9720":"#D40800","J-9740":"#D00000","J-62":"#CC0000",
+  "J-980":"#C80000","J-555":"#C40000","J-24":"#E83820","J-1515":"#F04030","J-596":"#F03828",
+  "J-948":"#F8B0B0","J-97":"#F8A0A0","J-9240":"#F49090","J-600":"#F08080","J-313":"#EC7070",
+  "J-335":"#E86060","J-98":"#E45050","J-2001":"#E04040","J-635":"#DC3030","J-5013":"#D82020",
+  "J-40":"#C00000","J-2063":"#BC0000","J-2010":"#B80000","J-614":"#B00000","J-530":"#AC0000",
+  "J-521":"#F8C0C0","J-216":"#F4B0B0","J-6013":"#F0A0A0","J-115":"#EC9090","J-1154":"#E88080",
+  "J-9916":"#F8C0D0","J-9816":"#F4B0C0","J-96":"#F0A0B8","J-8010":"#EC90B0","J-201":"#E880A8",
+  "J-529":"#E470A0","J-138":"#E06098","J-522":"#DC5090","J-583":"#D84088","J-582":"#D02078",
+  "J-755":"#CC1070","J-2012":"#C80068","J-588":"#E01870","J-622":"#DC0868","J-587":"#D80060",
+  "J-6020":"#F8C8E0","J-9289":"#F4B8D8","J-7056":"#F0A8D0","J-9280":"#E888C0","J-1011":"#E478B8",
+  "J-508":"#DC58A8","J-19":"#D848A0","J-402":"#D02890","J-401":"#CC1888","J-9812":"#C80880",
+  "J-2029":"#DC0098","J-2030":"#D80090","J-205":"#CC0078","J-116":"#C00060","J-554":"#B80050",
+  "J-541":"#D0B0C0","J-202":"#C8A0B8","J-28":"#C090B0","J-2023":"#D040C0","J-997":"#C030B0",
+  "J-9914":"#B020A0","J-1071":"#A01090","J-113":"#900080","J-9835":"#B000A0","J-720":"#A00090",
+  "J-6027":"#800070","J-1000":"#500030","J-932":"#300010","J-860":"#100000",
+  "J-9862":"#C8D0C8","J-9277":"#B8C0B8","J-9901":"#A8B0A8","J-9290":"#989898","J-9818":"#888888",
+  "J-1208":"#787878","J-999":"#686868","J-9257":"#585858","J-9897":"#484848","J-9254":"#383838",
+  "J-9251":"#282828","J-417":"#181818","J-9724":"#080808","J-1004":"#040404","J-17":"#000000",
+  "J-34":"#010101","J-1270":"#020202",
+  "J-9250":"#B0B8D0","J-990":"#A0A8C0","J-876":"#405088","J-877":"#304080","J-6031":"#203078",
+  "J-2025":"#102870","J-7952":"#002068","J-591":"#001860","J-110":"#000010","J-53":"#000008",
+  "J-9926":"#C0E8F8","J-6002":"#B0E0F8","J-6035":"#A0D8F8","J-950":"#90D0F8","J-651":"#80C8F0",
+  "J-6036":"#70C0E8","J-9035":"#60B8E0","J-1297":"#50B0D8","J-2065":"#40A8D0","J-960":"#1078A0",
+  "J-1211":"#006890","J-72":"#004870","J-835":"#000830",
+  "J-9238":"#A0D8D0","J-5015":"#90D0C8","J-2044":"#80C8C0","J-804":"#70C0B8","J-807":"#40A8A0",
+  "J-94":"#30A098","J-347":"#109088","J-856":"#008880","J-5020":"#007878",
+  "J-9205":"#A8E8E0","J-9085":"#88D8D0","J-6003":"#78D0C8","J-91":"#189898","J-608":"#008888",
+  "J-813":"#006868","J-818":"#003838","J-13":"#000202",
+  "J-9864":"#B8D8B8","J-542":"#98C898","J-9204":"#78B878","J-502":"#68B068","J-715":"#003800",
+  "J-690":"#001000",
+  "J-9879":"#C0F0D8","J-2013":"#B0E8D0","J-9801":"#A0E0C8","J-1391":"#70C8B0","J-11":"#40B098",
+  "J-6006":"#208880","J-320":"#108078","J-606":"#005858","J-321":"#003838","J-3000":"#00A880",
+  "J-1170":"#B0E8B0","J-6030":"#A0E0A8","J-704":"#80D098","J-716":"#70C890","J-841":"#50B880",
+  "J-280":"#40B078","J-127":"#006848","J-820":"#004838","J-955":"#006030","J-719":"#005028",
+  "J-9885":"#D8F0A0","J-9874":"#C8E890","J-9819":"#B8E080","J-544":"#98D060","J-906":"#78C040",
+  "J-1002":"#58B020","J-816":"#008000","J-221":"#007800","J-291":"#006800",
+  "J-650":"#D0C870","J-1374":"#C0B850","J-1372":"#B8B040","J-9809":"#B0A830","J-1371":"#A8A020",
+  "J-9248":"#A09810","J-9241":"#806000","J-153":"#583800","J-9877":"#402000",
+  "J-9873":"#D0C8B8","J-9209":"#C8C0B0","J-9237":"#A8A090","J-219":"#988878","J-9259":"#806048",
+  "J-900":"#580018","J-20":"#380000",
+  "J-9826":"#D8B0A8","J-543":"#C89088","J-310":"#B87068","J-195":"#C86060","J-194":"#B84040",
+  "J-9908":"#C09080","J-6156":"#B88070","J-9813":"#885040","J-9822":"#683020","J-9284":"#582010",
+  "J-9823":"#8C4040","J-9857":"#5C2820","J-410":"#2C0800","J-902":"#642818",
+  "J-9882":"#E8C8A0","J-855":"#D88858","J-680":"#CC5820","J-314":"#C02800","J-148":"#900000",
+  "J-156":"#800000","J-9913":"#700000","J-272":"#600000",
+};
+
+const JOLLY_NAMES = {
+  "J-415":"Off White","J-1522":"Jet Black","J-6000":"White","J-1305":"Pearl White","J-585":"Ivory",
+  "J-121":"Cream","J-9917":"Light Cream","J-9786":"Pale Lemon","J-9865":"Lemon Chiffon","J-708":"Butter Yellow",
+  "J-6042":"Pale Yellow","J-668":"Soft Yellow","J-6104":"Yellow","J-6109":"Bright Yellow","J-9297":"Canary Yellow",
+  "J-134":"Golden Yellow","J-6064":"Deep Yellow","J-9778":"Corn Yellow","J-9886":"Maize","J-9210":"Amber",
+  "J-9230":"Dark Amber","J-1474":"Caramel","J-901":"Bronze","J-1278":"Dark Bronze","J-805":"Antique Gold",
+  "J-248":"Champagne","J-1463":"Beige","J-1146":"Light Beige","J-210":"Sand","J-1147":"Tan",
+  "J-7017":"Wheat","J-2038":"Light Brown","J-7036":"Fawn","J-802":"Khaki Brown","J-1200":"Khaki",
+  "J-9239":"Medium Brown","J-2028":"Brown","J-9144":"Coffee","J-5023":"Cocoa","J-9872":"Dark Brown",
+  "J-9017":"Chocolate","J-9247":"Deep Brown","J-9298":"Espresso","J-806":"Clay","J-9811":"Rust Brown",
+  "J-9229":"Terra Cotta","J-9810":"Burnt Sienna","J-9256":"Seal Brown","J-9235":"Dark Seal","J-9288":"Mahogany",
+  "J-515":"Lemon Yellow","J-9744":"Bright Lemon","J-670":"Deep Lemon","J-7610":"Saffron","J-3325":"Goldenrod",
+  "J-5056":"Apricot","J-7053":"Tangerine","J-1477":"Orange","J-7911":"Pumpkin","J-7052":"Mango",
+  "J-209":"Peach","J-673":"Dark Orange","J-826":"Burnt Orange","J-2058":"Light Salmon","J-2060":"Salmon",
+  "J-1357":"Dark Salmon","J-143":"Tomato","J-9234":"Flame","J-7014":"Scarlet","J-9232":"Deep Scarlet",
+  "J-550":"Pale Peach","J-75":"Peach Blush","J-420":"Light Coral","J-9815":"Coral","J-82":"Salmon Pink",
+  "J-9947":"Salmon","J-5033":"Deep Salmon","J-1014":"Light Red","J-192":"Red Orange","J-9941":"Orange Red",
+  "J-750":"Red","J-1712":"Cherry Red","J-693":"Deep Red","J-171":"Crimson","J-9233":"Dark Crimson",
+  "J-2098":"Wine Red","J-965":"Dark Wine","J-9720":"Carmine","J-9740":"Deep Carmine","J-62":"Burgundy",
+  "J-980":"Dark Burgundy","J-555":"Maroon","J-24":"Vermillion","J-1515":"Light Vermillion","J-596":"Flame Red",
+  "J-948":"Light Pink","J-97":"Pink","J-9240":"Hot Pink","J-600":"Coral Pink","J-313":"Rose Pink",
+  "J-335":"Medium Rose","J-98":"Deep Rose","J-2001":"Red Rose","J-635":"Carmine Rose","J-5013":"Cherry",
+  "J-40":"Deep Cherry","J-2063":"Ruby","J-2010":"Dark Ruby","J-614":"Garnet","J-530":"Deep Garnet",
+  "J-521":"Baby Pink","J-216":"Light Rose","J-6013":"Blush Pink","J-115":"Rose","J-1154":"Medium Pink",
+  "J-9916":"Powder Pink","J-96":"Soft Pink","J-201":"Carnation","J-529":"Flamingo","J-138":"Candy Pink",
+  "J-522":"Deep Pink","J-583":"Fuchsia Pink","J-582":"Hot Fuchsia","J-588":"Magenta","J-622":"Deep Magenta",
+  "J-6020":"Lavender Pink","J-9289":"Light Lilac","J-7056":"Lilac","J-9280":"Orchid","J-1011":"Light Violet",
+  "J-508":"Pink Violet","J-19":"Medium Fuchsia","J-402":"Fuchsia","J-401":"Deep Fuchsia",
+  "J-9812":"Bright Fuchsia","J-2029":"Electric Pink","J-205":"Dark Pink","J-116":"Deep Cerise","J-554":"Dark Magenta",
+  "J-541":"Mauve","J-202":"Dusty Rose","J-28":"Plum Blush","J-2023":"Purple Pink","J-997":"Purple Rose",
+  "J-9914":"Purple","J-1071":"Medium Purple","J-113":"Dark Purple","J-9835":"Violet","J-720":"Medium Violet",
+  "J-6027":"Dark Violet","J-1000":"Blackberry","J-932":"Dark Plum","J-860":"Deep Plum",
+  "J-9873":"Light Taupe","J-9209":"Taupe","J-9237":"Grey Brown","J-219":"Warm Grey","J-9259":"Dark Taupe",
+  "J-900":"Dark Mink","J-20":"Bark",
+  "J-9862":"Silver Grey","J-9277":"Light Grey","J-9901":"Pale Grey","J-9290":"Grey","J-9818":"Medium Grey",
+  "J-1208":"Steel Grey","J-999":"Slate Grey","J-9257":"Dark Slate","J-9897":"Charcoal","J-9254":"Dark Charcoal",
+  "J-9251":"Soft Black","J-417":"Near Black","J-9724":"Dark Charcoal","J-1004":"Near Black","J-17":"Black",
+  "J-34":"Midnight","J-1270":"Deep Black",
+  "J-9250":"Light Blue Grey","J-990":"Blue Grey","J-876":"Royal Blue Soft","J-877":"Royal Blue",
+  "J-6031":"Dark Royal Blue","J-2025":"Navy Blue","J-7952":"Deep Navy","J-591":"Midnight Blue","J-110":"Dark Navy",
+  "J-9926":"Sky Blue","J-6002":"Light Sky Blue","J-6035":"Powder Blue","J-950":"Cornflower","J-651":"Medium Blue",
+  "J-6036":"Azure Blue","J-9035":"Bright Blue","J-1297":"Cobalt Blue","J-2065":"Dark Cobalt","J-960":"Teal Blue",
+  "J-1211":"Petrol Blue","J-72":"Deep Blue","J-835":"Midnight Blue Deep",
+  "J-9238":"Aquamarine","J-5015":"Light Teal","J-2044":"Teal","J-804":"Medium Teal","J-807":"Deep Teal",
+  "J-94":"Turquoise","J-347":"Dark Turquoise","J-856":"Forest Teal","J-5020":"Deep Forest Teal",
+  "J-9205":"Pale Cyan","J-9085":"Aqua","J-6003":"Light Aqua","J-91":"Medium Aqua","J-608":"Dark Aqua",
+  "J-813":"Teal Green","J-818":"Dark Teal Green","J-13":"Dark Jade",
+  "J-9864":"Light Sage","J-542":"Sage Green","J-9204":"Olive Green","J-502":"Fern Green","J-715":"Forest Green",
+  "J-690":"Dark Forest Green",
+  "J-9879":"Mint","J-2013":"Light Mint","J-9801":"Sea Green","J-1391":"Emerald Light","J-11":"Emerald Green",
+  "J-6006":"Dark Emerald","J-320":"Medium Emerald","J-606":"Deep Emerald","J-321":"Forest Emerald","J-3000":"Caribbean",
+  "J-1170":"Light Green","J-6030":"Apple Green Light","J-704":"Apple Green","J-716":"Medium Green","J-841":"Dark Green",
+  "J-280":"Deep Green","J-127":"Jungle Green","J-820":"Dark Jungle","J-955":"Bottle Green","J-719":"Deep Bottle",
+  "J-9885":"Lime Yellow","J-9874":"Lime Green","J-9819":"Bright Lime","J-544":"Yellow Green","J-906":"Grass Green",
+  "J-1002":"Leaf Green","J-816":"Dark Jungle Green","J-221":"Bottle Green","J-291":"Deep Bottle Green",
+  "J-650":"Olive Yellow","J-1374":"Dark Olive","J-1372":"Khaki Green","J-9809":"Moss Green","J-1371":"Dark Moss",
+  "J-9248":"Olive Brown","J-9241":"Dark Olive","J-153":"Dark Khaki","J-9877":"Very Dark Olive",
+  "J-9873":"Light Taupe","J-9209":"Taupe","J-9237":"Grey Brown","J-219":"Warm Grey","J-9259":"Dark Taupe",
+  "J-900":"Dark Mink","J-20":"Bark",
+  "J-9826":"Dusty Mauve","J-543":"Rose Brown","J-310":"Antique Rose","J-195":"Carnation Deep","J-194":"Deep Rose Pink",
+  "J-9908":"Light Copper","J-6156":"Copper","J-9813":"Seal","J-9822":"Dark Seal","J-9284":"Very Dark Brown",
+  "J-9823":"Wine Brown","J-9857":"Dark Wine Brown","J-410":"Blackened Brown","J-902":"Dark Coffee",
+  "J-9882":"Pale Apricot","J-855":"Buff","J-680":"Burnt Sienna Deep","J-314":"Brick","J-148":"Dark Brick",
+  "J-156":"Maroon Dark","J-9913":"Deep Maroon","J-272":"Wine Dark",
+};
+
+//  
+// STATE
+//  
+const STORAGE_KEY = 'tt_jolly';
+let threads = [];
+let editingId = null;
+
+try { threads = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch { threads = []; }
+
+if (threads.length === 0) {
+  threads = [
+    { id:1, code:'J-415', name:'Off White', hex:'#F5F5F0', type:'Rayon', brand:'Jolly Group', avail:24, reserved:4, min:10, location:'Rack A-1' },
+    { id:2, code:'J-1522', name:'Jet Black', hex:'#18191F', type:'Rayon', brand:'Jolly Group', avail:3, reserved:0, min:10, location:'Rack A-2' },
+    { id:3, code:'J-750', name:'Red', hex:'#F04020', type:'Polyester', brand:'Jolly Group', avail:0, reserved:0, min:5, location:'Rack B-1' },
+    { id:4, code:'J-877', name:'Royal Blue', hex:'#304080', type:'Trilobal Polyester', brand:'Jolly Group', avail:15, reserved:5, min:8, location:'Rack C-1' },
+    { id:5, code:'J-11', name:'Emerald Green', hex:'#40B098', type:'Silk Finish', brand:'Jolly Group', avail:7, reserved:2, min:10, location:'Rack D-1' },
+    { id:6, code:'J-2023', name:'Purple Pink', hex:'#D040C0', type:'Cationic', brand:'Jolly Group', avail:20, reserved:0, min:5, location:'Rack E-1' },
+  ];
+  save();
+}
+
+function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(threads)); flashSaveIndicator(); }
+let _saveFlash;
+function flashSaveIndicator() {
+  const el = document.getElementById('save-indicator');
+  if (!el) return;
+  el.textContent = 'Saved just now';
+  clearTimeout(_saveFlash);
+  _saveFlash = setTimeout(() => { el.textContent = 'Saved on this device'; }, 2500);
+}
+
+function exportData() {
+  const blob = new Blob([JSON.stringify(threads, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `threadtrack-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  a.click(); URL.revokeObjectURL(a.href);
+  toast('Backup downloaded');
+}
+function importData(e) {
+  const file = e.target.files?.[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(reader.result);
+      if (!Array.isArray(data)) throw new Error();
+      if (!confirm(`Import ${data.length} thread(s)? This replaces your current inventory.`)) return;
+      threads = data.map((t, i) => ({ ...t, id: t.id || Date.now() + i }));
+      save(); render(); toast('Import complete');
+    } catch { toast('Invalid backup file'); }
+    e.target.value = '';
+  };
+  reader.readAsText(file);
+}
+
+function boxes(n) { return Math.floor(n / 10); }
+function looseC(n) { return n % 10; }
+function boxStr(n) {
+  const b = boxes(n), l = looseC(n);
+  if (n === 0) return '-';
+  return b > 0 ? `${b} box${b > 1 ? 'es' : ''} + ${l}` : `${l} cones`;
+}
+function getStatus(t) {
+  if (t.avail === 0) return 'out';
+  if (t.avail <= t.min) return 'low';
+  return 'ok';
+}
+function statusBadge(t) {
+  const s = getStatus(t);
+  if (s === 'out') return '<span class="badge badge-danger">Out of Stock</span>';
+  if (s === 'low') return '<span class="badge badge-warn">Low Stock</span>';
+  return '<span class="badge badge-ok">In Stock</span>';
+}
+
+function showPage(p) {
+  document.querySelectorAll('.page').forEach(x => x.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(x => x.classList.remove('active'));
+  document.getElementById('page-' + p).classList.add('active');
+  ['dashboard', 'inventory', 'lowstock'].forEach((n, i) => {
+    if (n === p) document.querySelectorAll('.tab-btn')[i].classList.add('active');
+  });
+  render();
+}
+function render() { renderDash(); renderInventory(); renderLowStock(); }
+
+function renderDash() {
+  const total = threads.length;
+  const totalCones = threads.reduce((s, t) => s + t.avail, 0);
+  const totalBoxes = boxes(totalCones);
+  const low = threads.filter(t => getStatus(t) === 'low').length;
+  const out = threads.filter(t => getStatus(t) === 'out').length;
+  document.getElementById('s-total').textContent = total;
+  document.getElementById('s-cones').textContent = totalCones;
+  document.getElementById('s-boxes').textContent = totalBoxes;
+  document.getElementById('s-low').textContent = low;
+  document.getElementById('s-out').textContent = out;
+  const banner = document.getElementById('alert-banner');
+  const issues = low + out;
+  if (issues > 0) {
+    banner.classList.remove('hidden');
+    document.getElementById('alert-text').textContent = `${issues} thread${issues > 1 ? 's' : ''} need attention - ${out} out of stock, ${low} running low.`;
+  } else { banner.classList.add('hidden'); }
+  const tbody = document.getElementById('dash-tbody');
+  if (!threads.length) { tbody.innerHTML = '<tr><td colspan="7"><div class="empty"><div class="empty-icon">+</div><p>No threads yet - add your first one!</p></div></td></tr>'; return; }
+  tbody.innerHTML = threads.map(t => `
+    <tr>
+      <td><div class="color-cell"><span class="color-dot" style="background:${t.hex}"></span></div></td>
+      <td><code>${t.code}</code></td>
+      <td style="font-weight:600">${t.name}</td>
+      <td><span class="badge badge-type">${t.type}</span></td>
+      <td class="num">${t.avail}</td>
+      <td><span class="box-badge">${boxStr(t.avail)}</span></td>
+      <td>${statusBadge(t)}</td>
+    </tr>`).join('');
+}
+
+function renderInventory() {
+  const q = (document.getElementById('search').value || '').toLowerCase();
+  const ft = document.getElementById('filterType').value;
+  const list = threads.filter(t =>
+    (!q || t.code.toLowerCase().includes(q) || t.name.toLowerCase().includes(q) || (t.brand || '').toLowerCase().includes(q)) &&
+    (!ft || t.type === ft)
+  );
+  const tbody = document.getElementById('inv-tbody');
+  if (!list.length) { tbody.innerHTML = '<tr><td colspan="10"><div class="empty"><div class="empty-icon">?</div><p>No threads match your search.</p></div></td></tr>'; return; }
+  tbody.innerHTML = list.map(t => `
+    <tr>
+      <td><div class="color-cell"><span class="color-dot" style="background:${t.hex}"></span></div></td>
+      <td><code>${t.code}</code></td>
+      <td style="font-weight:600">${t.name}</td>
+      <td><span class="badge badge-type">${t.type}</span></td>
+      <td class="num">${t.avail}</td>
+      <td><div class="box-info"><span class="box-badge">${boxStr(t.avail)}</span></div></td>
+      <td class="num" style="color:var(--muted)">${t.reserved}</td>
+      <td class="num" style="color:var(--muted)">${t.min}</td>
+      <td>${statusBadge(t)}</td>
+      <td style="white-space:nowrap;display:flex;gap:5px">
+        <button class="btn-sm btn-edit" onclick="openModal(${t.id})">Edit</button>
+        <button class="btn-sm btn-del" onclick="delThread(${t.id})">Delete</button>
+      </td>
+    </tr>`).join('');
+}
+
+function renderLowStock() {
+  const issues = threads.filter(t => getStatus(t) !== 'ok').sort((a, b) => a.avail - b.avail);
+  document.getElementById('ls-count').textContent = issues.length ? `${issues.length} item${issues.length > 1 ? 's' : ''} need attention` : '';
+  const list = document.getElementById('ls-list');
+  if (!issues.length) { list.innerHTML = '<div class="empty"><div class="empty-icon">OK</div><p>All threads are well stocked!</p></div>'; return; }
+  list.innerHTML = issues.map(t => {
+    const s = getStatus(t);
+    const needed = Math.max(0, t.min - t.avail);
+    const boxesNeeded = Math.ceil(needed / 10);
+    return `<div class="ls-item ${s === 'out' ? 'critical' : 'warning'}">
+      <span class="color-dot" style="background:${t.hex};width:34px;height:34px;flex-shrink:0"></span>
+      <div class="ls-info">
+        <div class="ls-name">${t.name} <code>${t.code}</code></div>
+        <div class="ls-meta">${t.type} - ${t.location || '-'}</div>
+        <div style="margin-top:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          ${statusBadge(t)}
+          ${needed > 0 ? `<span style="font-size:12px;color:var(--muted);font-weight:500">Order <b style="color:var(--text-2)">${needed}</b> cones = <b style="color:var(--text-2)">${boxesNeeded} box${boxesNeeded > 1 ? 'es' : ''}</b></span>` : ''}
+        </div>
+      </div>
+      <div class="ls-right">
+        <div class="ls-cones" style="color:${s === 'out' ? 'var(--danger)' : 'var(--warn)'}">${t.avail}</div>
+        <div class="ls-min">min: ${t.min}</div>
+        <span class="box-badge" style="margin-top:6px;display:inline-block">${boxStr(t.avail)}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+let jollyMatch = null;
+function jollyLookup() {
+  const raw = document.getElementById('jolly-input').value.trim().toUpperCase();
+  let code = raw;
+  if (/^\d+$/.test(code)) code = 'J-' + code;
+  else if (/^J\d+$/.test(code)) code = 'J-' + code.slice(1);
+  const hex = JOLLY[code];
+  const name = JOLLY_NAMES[code];
+  const resultEl = document.getElementById('jolly-result');
+  if (hex) {
+    jollyMatch = { code, hex, name: name || code };
+    document.getElementById('jolly-preview').style.background = hex;
+    document.getElementById('jolly-info').textContent = `${code} - ${name || 'Jolly Thread'} (${hex})`;
+    resultEl.classList.remove('hidden');
+  } else { jollyMatch = null; resultEl.classList.add('hidden'); }
+}
+function applyJolly() {
+  if (!jollyMatch) { toast('Code not found in Jolly catalogue'); return; }
+  document.getElementById('f-code').value = jollyMatch.code;
+  document.getElementById('f-name').value = jollyMatch.name;
+  document.getElementById('f-hex').value = jollyMatch.hex;
+  syncColor();
+  toast(`Applied ${jollyMatch.code} - ${jollyMatch.name}`);
+}
+
+function openModal(id = null) {
+  editingId = id;
+  document.getElementById('modal-title').textContent = id ? 'Edit Thread' : 'Add Thread';
+  document.getElementById('jolly-input').value = '';
+  document.getElementById('jolly-result').classList.add('hidden');
+  jollyMatch = null;
+  if (id) {
+    const t = threads.find(x => x.id === id);
+    document.getElementById('f-code').value = t.code;
+    document.getElementById('f-name').value = t.name;
+    document.getElementById('f-hex').value = t.hex;
+    document.getElementById('f-type').value = t.type;
+    document.getElementById('f-brand').value = t.brand || '';
+    document.getElementById('f-avail').value = t.avail;
+    document.getElementById('f-reserved').value = t.reserved;
+    document.getElementById('f-min').value = t.min;
+    document.getElementById('f-location').value = t.location || '';
+    document.getElementById('jolly-input').value = t.code;
+    jollyLookup(); syncColor();
+  } else {
+    ['f-code','f-name','f-hex','f-brand','f-location'].forEach(i => document.getElementById(i).value = '');
+    document.getElementById('f-avail').value = 0;
+    document.getElementById('f-reserved').value = 0;
+    document.getElementById('f-min').value = 10;
+    document.getElementById('color-preview').style.background = '#ccc';
+  }
+  updateBoxCalc();
+  document.getElementById('overlay').classList.remove('hidden');
+}
+function closeModal() { document.getElementById('overlay').classList.add('hidden'); editingId = null; }
+function overlayBg(e) { if (e.target === document.getElementById('overlay')) closeModal(); }
+function syncColor() {
+  const hex = document.getElementById('f-hex').value;
+  document.getElementById('color-preview').style.background = hex || '#ccc';
+}
+function updateBoxCalc() {
+  const n = parseInt(document.getElementById('f-avail').value) || 0;
+  const b = boxes(n), l = looseC(n);
+  const helper = document.getElementById('box-helper');
+  helper.innerHTML = `${n} cones = <b>${b} full box${b !== 1 ? 'es' : ''}</b> + ${l} loose cone${l !== 1 ? 's' : ''} (10 cones/box)`;
+  helper.classList.remove('hidden');
+}
+function saveThread() {
+  const code = document.getElementById('f-code').value.trim();
+  const name = document.getElementById('f-name').value.trim();
+  if (!code) { toast('Jolly Code is required'); return; }
+  const data = {
+    code, name: name || code,
+    hex: document.getElementById('f-hex').value.trim() || '#888888',
+    type: document.getElementById('f-type').value,
+    brand: document.getElementById('f-brand').value.trim() || 'Jolly Group',
+    avail: parseInt(document.getElementById('f-avail').value) || 0,
+    reserved: parseInt(document.getElementById('f-reserved').value) || 0,
+    min: parseInt(document.getElementById('f-min').value) || 0,
+    location: document.getElementById('f-location').value.trim(),
+  };
+  if (editingId) {
+    const idx = threads.findIndex(t => t.id === editingId);
+    threads[idx] = { ...threads[idx], ...data };
+    toast('Updated and saved');
+  } else {
+    data.id = Date.now();
+    threads.push(data);
+    toast('Thread added and saved');
+  }
+  save(); closeModal(); render();
+}
+function delThread(id) {
+  if (!confirm('Delete this thread?')) return;
+  threads = threads.filter(t => t.id !== id);
+  save(); render(); toast('Deleted');
+}
+let _tt;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  clearTimeout(_tt); _tt = setTimeout(() => el.classList.remove('show'), 2500);
+}
+initAuth();
+render();
+</script>
+</body>
+</html>
+
+
